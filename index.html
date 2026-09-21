@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คำนวณเวลาพักและระบบ</title>
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif, Tahoma;
+      background-color: #f4f7f6;
+      display: flex;
+      justify-content: center;
+      padding: 30px 15px;
+    }
+    .card {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 440px;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: 1px;
+    }
+    input[type="text"]:focus {
+      border-color: #007bff;
+      outline: none;
+    }
+    .result-box {
+      background-color: #e8f4fd;
+      border-left: 4px solid #007bff;
+      padding: 10px;
+      margin: 10px 0 15px 0;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #0c5460;
+    }
+    .btn-save {
+      width: 100%;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+    .btn-save:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>คำนวณเวลาพักและระบบ</h2>
+
+  <!-- ช่องที่ 1 & 2 (ช่วงที่ 1) -->
+  <div class="form-group">
+    <label for="t1">1. เวลาพักครั้งที่ 1 (พิมพ์เลข 4 หลัก เช่น 1200)</label>
+    <input type="text" id="t1" maxlength="5" placeholder="HH:MM" oninput="formatTimeInput(this)" onblur="calculateAll()">
+  </div>
+
+  <div class="form-group">
+    <label for="t2">2. เวลาเริ่มงาน (พิมพ์เลข 4 หลัก เช่น 1300)</label>
+    <input type="text" id="t2" maxlength="5" placeholder="HH:MM" oninput="formatTimeInput(this)" onblur="calculateAll()">
+  </div>
+
+  <div class="result-box" id="diff1-display">ช่วงที่ 1 (พัก 1 ถึง เริ่มงาน): -</div>
+
+  <hr style="border: 0; border-top: 1px dashed #ddd; margin: 15px 0;">
+
+  <!-- ช่องที่ 3 & 4 (ช่วงที่ 2) -->
+  <div class="form-group">
+    <label for="t3">3. เวลาพักครั้งที่ 2 (พิมพ์เลข 4 หลัก เช่น 1730)</label>
+    <input type="text" id="t3" maxlength="5" placeholder="HH:MM" oninput="formatTimeInput(this)" onblur="calculateAll()">
+  </div>
+
+  <div class="form-group">
+    <label for="t4">4. เวลาปิดระบบ (พิมพ์เลข 4 หลัก เช่น 1815)</label>
+    <input type="text" id="t4" maxlength="5" placeholder="HH:MM" oninput="formatTimeInput(this)" onblur="calculateAll()">
+  </div>
+
+  <div class="result-box" id="diff2-display">ช่วงที่ 2 (พัก 2 ถึง ปิดระบบ): -</div>
+
+  <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
+
+  <!-- ช่องที่ 5 -->
+  <div class="form-group">
+    <label for="t5">5. รวมเวลาทั้งหมด (ชั่วโมง / นาที)</label>
+    <input type="text" id="t5" readonly placeholder="0 นาที" style="background: #f9f9f9; font-weight: bold; color: #d9534f;">
+  </div>
+
+  <button class="btn-save" onclick="saveData()">บันทึกข้อมูล</button>
+</div>
+
+<script>
+  let diff1Minutes = null;
+  let diff2Minutes = null;
+  let totalMinutes = 0;
+
+  // จัดรูปแบบเลขอัตโนมัติ: พิมพ์ 4 ตัว เช่น 0830 ให้กลายเป็น 08:30
+  function formatTimeInput(input) {
+    let val = input.value.replace(/\D/g, ''); // รับเฉพาะตัวเลข
+    if (val.length >= 4) {
+      val = val.substring(0, 4);
+      let h = parseInt(val.substring(0, 2), 10);
+      let m = parseInt(val.substring(2, 4), 10);
+
+      // ตรวจสอบความถูกต้องของเวลา
+      if (h > 23) h = 23;
+      if (m > 59) m = 59;
+
+      const hh = String(h).padStart(2, '0');
+      const mm = String(m).padStart(2, '0');
+      input.value = `${hh}:${mm}`;
+    } else {
+      input.value = val;
+    }
+  }
+
+  // แปลง "HH:MM" เป็นนาที
+  function toMinutes(timeStr) {
+    if (!timeStr || timeStr.length < 5) return null;
+    const parts = timeStr.split(':');
+    if (parts.length !== 2) return null;
+    return (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
+  }
+
+  // แปลงนาทีให้เป็นข้อความ "X ชม. Y นาที"
+  function formatHoursMinutes(totalMins) {
+    if (totalMins === 0) return '0 นาที';
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    
+    if (hrs > 0 && mins > 0) return `${hrs} ชม. ${mins} นาที`;
+    if (hrs > 0) return `${hrs} ชม.`;
+    return `${mins} นาที`;
+  }
+
+  // คำนวณผลต่างเวลารองรับข้ามเที่ยงคืน
+  function getDiff(startStr, endStr) {
+    const start = toMinutes(startStr);
+    const end = toMinutes(endStr);
+    if (start === null || end === null) return null;
+
+    let diff = end - start;
+    if (diff < 0) diff += 24 * 60; // กรณีข้ามเที่ยงคืน
+    return diff;
+  }
+
+  function calculateAll() {
+    const t1 = document.getElementById('t1').value;
+    const t2 = document.getElementById('t2').value;
+    const t3 = document.getElementById('t3').value;
+    const t4 = document.getElementById('t4').value;
+
+    diff1Minutes = (t1.length === 5 && t2.length === 5) ? getDiff(t1, t2) : null;
+    diff2Minutes = (t3.length === 5 && t4.length === 5) ? getDiff(t3, t4) : null;
+
+    // แสดงผลช่วงที่ 1
+    if (diff1Minutes !== null) {
+      document.getElementById('diff1-display').innerText = `ช่วงที่ 1 (พัก 1 ถึง เริ่มงาน): ${formatHoursMinutes(diff1Minutes)} (${diff1Minutes} นาที)`;
+    } else {
+      document.getElementById('diff1-display').innerText = `ช่วงที่ 1 (พัก 1 ถึง เริ่มงาน): -`;
+    }
+
+    // แสดงผลช่วงที่ 2
+    if (diff2Minutes !== null) {
+      document.getElementById('diff2-display').innerText = `ช่วงที่ 2 (พัก 2 ถึง ปิดระบบ): ${formatHoursMinutes(diff2Minutes)} (${diff2Minutes} นาที)`;
+    } else {
+      document.getElementById('diff2-display').innerText = `ช่วงที่ 2 (พัก 2 ถึง ปิดระบบ): -`;
+    }
+
+    // สรุปรวมช่องที่ 5
+    totalMinutes = (diff1Minutes || 0) + (diff2Minutes || 0);
+
+    if (diff1Minutes === null && diff2Minutes === null) {
+      document.getElementById('t5').value = '';
+    } else {
+      document.getElementById('t5').value = `${formatHoursMinutes(totalMinutes)} (${totalMinutes} นาที)`;
+    }
+  }
+
+  function saveData() {
+    const t1 = document.getElementById('t1').value;
+    const t2 = document.getElementById('t2').value;
+    const t3 = document.getElementById('t3').value;
+    const t4 = document.getElementById('t4').value;
+
+    // เช็คว่ามีคู่อย่างน้อย 1 คู่ที่กรอกครบ
+    const hasPair1 = (t1.length === 5 && t2.length === 5);
+    const hasPair2 = (t3.length === 5 && t4.length === 5);
+
+    if (!hasPair1 && !hasPair2) {
+      alert("กรุณากรอกเวลาให้ครบอย่างน้อย 1 คู่ (ช่อง 1 กับ 2 หรือ ช่อง 3 กับ 4)");
+      return;
+    }
+
+    const record = {
+      date: new Date().toLocaleString('th-TH'),
+      t1: t1 || '-',
+      t2: t2 || '-',
+      diff1: diff1Minutes !== null ? formatHoursMinutes(diff1Minutes) : '-',
+      t3: t3 || '-',
+      t4: t4 || '-',
+      diff2: diff2Minutes !== null ? formatHoursMinutes(diff2Minutes) : '-',
+      totalText: formatHoursMinutes(totalMinutes),
+      totalMinutes: totalMinutes
+    };
+
+    let records = JSON.parse(localStorage.getItem('workTimeRecords') || '[]');
+    records.push(record);
+    localStorage.setItem('workTimeRecords', JSON.stringify(records));
+
+    window.location.href = 'history.html';
+  }
+</script>
+
+</body>
+</html>

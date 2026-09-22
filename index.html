@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>คำนวณเวลาพักและระบบ</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, Tahoma, sans-serif;
+      background-color: #eef2f5;
+      margin: 0;
+      padding: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .card {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 420px;
+    }
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+      margin: 0 0 16px 0;
+      font-size: 20px;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      color: #555;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    /* ช่องกรอกข้อมูล */
+    .time-input {
+      width: 100%;
+      height: 44px;
+      border: 2px solid #dcdfe6;
+      border-radius: 8px;
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      letter-spacing: 2px;
+      color: #333;
+      background-color: #fafbfc;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .time-input.active {
+      border-color: #007bff;
+      background-color: #f0f7ff;
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.2);
+    }
+    .result-pill {
+      background-color: #eaf4fe;
+      color: #0d6efd;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    /* ช่องที่ 5 รวมเวลา */
+    .total-box {
+      background-color: #fff4e5;
+      border: 2px solid #ff9800;
+      color: #d35400;
+      height: 48px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    /* แป้นพิมพ์ตัวเลขแบบเครื่องคิดเลข */
+    .keypad-container {
+      background: #f8f9fa;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 15px;
+    }
+    .keypad-title {
+      font-size: 12px;
+      color: #718096;
+      text-align: center;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .key-btn {
+      height: 48px;
+      font-size: 22px;
+      font-weight: bold;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      border-radius: 8px;
+      color: #1f2937;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      user-select: none;
+    }
+    .key-btn:active {
+      background: #e5e7eb;
+      transform: translateY(1px);
+    }
+    .key-btn.action-back {
+      background: #fee2e2;
+      color: #dc2626;
+      border-color: #fca5a5;
+    }
+    .key-btn.action-next {
+      background: #e0e7ff;
+      color: #4338ca;
+      font-size: 15px;
+      border-color: #c7d2fe;
+    }
+
+    /* ปุ่มควบคุม */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      flex: 1;
+      height: 44px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+    }
+    .btn-save {
+      background-color: #10b981;
+      color: white;
+    }
+    .btn-save:hover { background-color: #059669; }
+    .btn-reset {
+      background-color: #ef4444;
+      color: white;
+      max-width: 100px;
+    }
+    .btn-reset:hover { background-color: #dc2626; }
+    .btn-history {
+      background-color: #64748b;
+      color: white;
+      margin-top: 10px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>คำนวณเวลาพักและระบบ</h2>
+
+  <!-- ช่องที่ 1 & 2 -->
+  <div class="form-group">
+    <label>1. เวลาพักครั้งที่ 1</label>
+    <input type="text" id="t1" class="time-input" readonly placeholder="--:--" onclick="selectInput('t1')">
+  </div>
+  <div class="form-group">
+    <label>2. เวลาเริ่มงาน</label>
+    <input type="text" id="t2" class="time-input" readonly placeholder="--:--" onclick="selectInput('t2')">
+  </div>
+  <div class="result-pill" id="diff1-display">ช่วงที่ 1: -</div>
+
+  <!-- ช่องที่ 3 & 4 -->
+  <div class="form-group">
+    <label>3. เวลาพักครั้งที่ 2</label>
+    <input type="text" id="t3" class="time-input" readonly placeholder="--:--" onclick="selectInput('t3')">
+  </div>
+  <div class="form-group">
+    <label>4. เวลาปิดระบบ</label>
+    <input type="text" id="t4" class="time-input" readonly placeholder="--:--" onclick="selectInput('t4')">
+  </div>
+  <div class="result-pill" id="diff2-display">ช่วงที่ 2: -</div>
+
+  <!-- ช่องที่ 5 รวมเวลา -->
+  <label>5. รวมเวลาทั้งหมด</label>
+  <div class="total-box" id="t5-display">0 นาที</div>
+
+  <!-- แป้นพิมพ์ตัวเลขจำลอง -->
+  <div class="keypad-container">
+    <div class="keypad-title" id="keypad-status">กำลังกรอก: ช่องที่ 1</div>
+    <div class="keypad-grid">
+      <button type="button" class="key-btn" onclick="pressDigit('1')">1</button>
+      <button type="button" class="key-btn" onclick="pressDigit('2')">2</button>
+      <button type="button" class="key-btn" onclick="pressDigit('3')">3</button>
+      <button type="button" class="key-btn" onclick="pressDigit('4')">4</button>
+      <button type="button" class="key-btn" onclick="pressDigit('5')">5</button>
+      <button type="button" class="key-btn" onclick="pressDigit('6')">6</button>
+      <button type="button" class="key-btn" onclick="pressDigit('7')">7</button>
+      <button type="button" class="key-btn" onclick="pressDigit('8')">8</button>
+      <button type="button" class="key-btn" onclick="pressDigit('9')">9</button>
+      <button type="button" class="key-btn action-back" onclick="pressBackspace()">⌫</button>
+      <button type="button" class="key-btn" onclick="pressDigit('0')">0</button>
+      <button type="button" class="key-btn action-next" onclick="nextField()">Next ➔</button>
+    </div>
+  </div>
+
+  <!-- แถวปุ่มควบคุม -->
+  <div class="btn-row">
+    <button type="button" class="btn btn-reset" onclick="resetForm()">รีเซ็ต</button>
+    <button type="button" class="btn btn-save" onclick="saveData()">บันทึกข้อมูล</button>
+  </div>
+  <a href="history.html" class="btn btn-history">ดูประวัติที่บันทึกไว้</a>
+</div>
+
+<script>
+  const fieldOrder = ['t1', 't2', 't3', 't4'];
+  const fieldNames = {
+    't1': 'ช่องที่ 1 (พัก 1)',
+    't2': 'ช่องที่ 2 (เริ่มงาน)',
+    't3': 'ช่องที่ 3 (พัก 2)',
+    't4': 'ช่องที่ 4 (ปิดระบบ)'
+  };
+  let currentFieldId = 't1';
+
+  // โหลดค่าเดิมที่จำไว้เมื่อเปิดหน้าเว็บ
+  window.addEventListener('DOMContentLoaded', () => {
+    loadSavedDraft();
+    selectInput('t1');
+    calculateAll();
+  });
+
+  function selectInput(id) {
+    currentFieldId = id;
+    fieldOrder.forEach(fId => {
+      const el = document.getElementById(fId);
+      if (fId === id) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
+    document.getElementById('keypad-status').innerText = `กำลังกรอก: ${fieldNames[id]}`;
+  }
+
+  // กดปุ่มตัวเลข
+  function pressDigit(num) {
+    const input = document.getElementById(currentFieldId);
+    let raw = (input.dataset.raw || '') + num;
+
+    if (raw.length > 4) return; // ไม่เกิน 4 หลัก
+
+    input.dataset.raw = raw;
+    formatDisplay(input);
+    saveDraft();
+    calculateAll();
+
+    // หากพิมพ์ครบ 4 ตัว เลื่อนไปช่องถัดไปอัตโนมัติ
+    if (raw.length === 4) {
+      setTimeout(() => {
+        nextField();
+      }, 150);
+    }
+  }
+
+  // ปุ่มลบเลขทีละตัว
+  function pressBackspace() {
+    const input = document.getElementById(currentFieldId);
+    let raw = input.dataset.raw || '';
+    if (raw.length > 0) {
+      raw = raw.slice(0, -1);
+      input.dataset.raw = raw;
+      formatDisplay(input);
+      saveDraft();
+      calculateAll();
+    }
+  }
+
+  // ปุ่ม Next เลื่อนช่อง
+  function nextField() {
+    const currentIndex = fieldOrder.indexOf(currentFieldId);
+    const nextIndex = (currentIndex + 1) % fieldOrder.length;
+    selectInput(fieldOrder[nextIndex]);
+  }
+
+  // แปลงเลขดิบให้อยู่ในรูป HH:MM
+  function formatDisplay(input) {
+    let raw = input.dataset.raw || '';
+    if (raw.length === 0) {
+      input.value = '';
+      return;
+    }
+    if (raw.length <= 2) {
+      input.value = raw;
+    } else {
+      let hh = raw.substring(0, 2);
+      let mm = raw.substring(2);
+      
+      // ตรวจสอบเวลาเมื่อครบ 4 ตัว
+      if (raw.length === 4) {
+        let h = parseInt(hh, 10);
+        let m = parseInt(mm, 10);
+        if (h > 23) h = 23;
+        if (m > 59) m = 59;
+        hh = String(h).padStart(2, '0');
+        mm = String(m).padStart(2, '0');
+        input.dataset.raw = `${hh}${mm}`;
+      }
+      input.value = `${hh}:${mm}`;
+    }
+  }
+
+  function toMinutes(timeStr) {
+    if (!timeStr || timeStr.length < 5) return null;
+    const parts = timeStr.split(':');
+    return (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
+  }
+
+  function formatHoursMinutes(totalMins) {
+    if (totalMins === 0) return '0 นาที';
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    if (hrs > 0 && mins > 0) return `${hrs} ชม. ${mins} นาที`;
+    if (hrs > 0) return `${hrs} ชม.`;
+    return `${mins} นาที`;
+  }
+
+  function getDiff(startStr, endStr) {
+    const start = toMinutes(startStr);
+    const end = toMinutes(endStr);
+    if (start === null || end === null) return null;
+    let diff = end - start;
+    if (diff < 0) diff += 24 * 60;
+    return diff;
+  }
+
+  let diff1Minutes = null;
+  let diff2Minutes = null;
+  let totalMinutes = 0;
+
+  function calculateAll() {
+    const t1 = document.getElementById('t1').value;
+    const t2 = document.getElementById('t2').value;
+    const t3 = document.getElementById('t3').value;
+    const t4 = document.getElementById('t4').value;
+
+    diff1Minutes = (t1.length === 5 && t2.length === 5) ? getDiff(t1, t2) : null;
+    diff2Minutes = (t3.length === 5 && t4.length === 5) ? getDiff(t3, t4) : null;
+
+    document.getElementById('diff1-display').innerText = diff1Minutes !== null
+      ? `ช่วงที่ 1: ${formatHoursMinutes(diff1Minutes)} (${diff1Minutes} นาที)`
+      : `ช่วงที่ 1: -`;
+
+    document.getElementById('diff2-display').innerText = diff2Minutes !== null
+      ? `ช่วงที่ 2: ${formatHoursMinutes(diff2Minutes)} (${diff2Minutes} นาที)`
+      : `ช่วงที่ 2: -`;
+
+    totalMinutes = (diff1Minutes || 0) + (diff2Minutes || 0);
+
+    if (diff1Minutes === null && diff2Minutes === null) {
+      document.getElementById('t5-display').innerText = '0 นาที';
+    } else {
+      document.getElementById('t5-display').innerText = `${formatHoursMinutes(totalMinutes)} (${totalMinutes} นาที)`;
+    }
+  }
+
+  // ระบบจำค่าร่าง (Draft) ลง localStorage
+  function saveDraft() {
+    const draft = {
+      t1: document.getElementById('t1').dataset.raw || '',
+      t2: document.getElementById('t2').dataset.raw || '',
+      t3: document.getElementById('t3').dataset.raw || '',
+      t4: document.getElementById('t4').dataset.raw || ''
+    };
+    localStorage.setItem('workTimeDraft', JSON.stringify(draft));
+  }
+
+  function loadSavedDraft() {
+    const saved = localStorage.getItem('workTimeDraft');
+    if (!saved) return;
+    try {
+      const draft = JSON.parse(saved);
+      fieldOrder.forEach(id => {
+        const input = document.getElementById(id);
+        input.dataset.raw = draft[id] || '';
+        formatDisplay(input);
+      });
+    } catch(e) {}
+  }
+
+  // ปุ่มรีเซ็ตค่า
+  function resetForm() {
+    if (confirm("ต้องการล้างค่าที่กรอกไว้ทั้งหมดหรือไม่?")) {
+      localStorage.removeItem('workTimeDraft');
+      fieldOrder.forEach(id => {
+        const input = document.getElementById(id);
+        input.value = '';
+        input.dataset.raw = '';
+      });
+      selectInput('t1');
+      calculateAll();
+    }
+  }
+
+  // บันทึกไปหน้าประวัติ
+  function saveData() {
+    const t1 = document.getElementById('t1').value;
+    const t2 = document.getElementById('t2').value;
+    const t3 = document.getElementById('t3').value;
+    const t4 = document.getElementById('t4').value;
+
+    const hasPair1 = (t1.length === 5 && t2.length === 5);
+    const hasPair2 = (t3.length === 5 && t4.length === 5);
+
+    if (!hasPair1 && !hasPair2) {
+      alert("กรุณากรอกเวลาให้สมบูรณ์อย่างน้อย 1 คู่\n(ช่อง 1 กับ 2 หรือ ช่อง 3 กับ 4)");
+      return;
+    }
+
+    const record = {
+      date: new Date().toLocaleString('th-TH'),
+      t1: t1 || '-',
+      t2: t2 || '-',
+      diff1: diff1Minutes !== null ? formatHoursMinutes(diff1Minutes) : '-',
+      t3: t3 || '-',
+      t4: t4 || '-',
+      diff2: diff2Minutes !== null ? formatHoursMinutes(diff2Minutes) : '-',
+      totalText: formatHoursMinutes(totalMinutes),
+      totalMinutes: totalMinutes
+    };
+
+    let records = JSON.parse(localStorage.getItem('workTimeRecords') || '[]');
+    records.push(record);
+    localStorage.setItem('workTimeRecords', JSON.stringify(records));
+
+    window.location.href = 'history.html';
+  }
+</script>
+
+</body>
+</html>
+
